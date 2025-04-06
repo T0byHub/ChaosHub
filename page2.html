@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChaosHub - Sims 4 DLC Unlocker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Sims 4 DLC Unlocker</h1>
+        <p>Download the latest version below</p>
+        <a href="sims4_unlocker.zip" class="btn download-btn">DOWNLOAD</a>
+        <a href="index.html" class="btn">Return to Home</a>
+
+        <div class="comments-section">
+            <h2>Comments</h2>
+            <form id="comment-form">
+                <textarea placeholder="Write your comment..." required></textarea>
+                <button type="submit" class="btn">Post Comment</button>
+            </form>
+            <div id="comments-list"></div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('comment-form');
+            const commentsList = document.getElementById('comments-list');
+            
+            // Load existing comments
+            loadComments();
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const text = this.querySelector('textarea').value.trim();
+                if (text) {
+                    addComment(text);
+                    this.querySelector('textarea').value = '';
+                }
+            });
+            
+            function addComment(text, parentId = null) {
+                const comment = {
+                    id: Date.now(),
+                    text: text,
+                    date: new Date().toLocaleString(),
+                    replies: [],
+                    parentId: parentId
+                };
+                
+                // Check for old comments and migrate them
+                let oldComments = localStorage.getItem('gamecracked-comments');
+                let comments = [];
+                
+                if (oldComments) {
+                    comments = JSON.parse(oldComments);
+                    localStorage.setItem('chaoshub-comments', oldComments);
+                    localStorage.removeItem('gamecracked-comments');
+                } else {
+                    comments = JSON.parse(localStorage.getItem('chaoshub-comments') || '[]');
+                }
+                if (parentId) {
+                    const parent = findComment(comments, parentId);
+                    if (parent) parent.replies.push(comment);
+                } else {
+                    comments.push(comment);
+                }
+                localStorage.setItem('chaoshub-comments', JSON.stringify(comments));
+                loadComments();
+            }
+            
+            function findComment(comments, id) {
+                for (const comment of comments) {
+                    if (comment.id === id) return comment;
+                    if (comment.replies.length) {
+                        const found = findComment(comment.replies, id);
+                        if (found) return found;
+                    }
+                }
+                return null;
+            }
+            
+            function loadComments() {
+                const comments = JSON.parse(localStorage.getItem('chaoshub-comments') || '[]');
+                commentsList.innerHTML = renderComments(comments);
+                
+                // Add reply event listeners
+                document.querySelectorAll('.reply-btn').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const commentId = parseInt(this.dataset.id);
+                        const replyForm = document.createElement('form');
+                        replyForm.className = 'reply-form';
+                        replyForm.innerHTML = `
+                            <textarea placeholder="Write your reply..." required></textarea>
+                            <button type="submit" class="btn small-btn">Post Reply</button>
+                        `;
+                        replyForm.addEventListener('submit', function(e) {
+                            e.preventDefault();
+                            const text = this.querySelector('textarea').value.trim();
+                            if (text) {
+                                addComment(text, commentId);
+                                this.remove();
+                            }
+                        });
+                        this.parentElement.appendChild(replyForm);
+                    });
+                });
+            }
+            
+            function renderComments(comments, level = 0) {
+                return comments.map(comment => `
+                    <div class="comment ${level > 0 ? 'reply' : ''}" style="margin-left: ${level * 20}px">
+                        <div class="comment-text">${comment.text}</div>
+                        <div class="comment-meta">
+                            <span>Anonymous User</span>
+                            <span>${comment.date}</span>
+                            <button class="reply-btn" data-id="${comment.id}">Reply</button>
+                        </div>
+                        ${comment.replies.length ? renderComments(comment.replies, level + 1) : ''}
+                    </div>
+                `).join('');
+            }
+        });
+    </script>
+</body>
+</html>
